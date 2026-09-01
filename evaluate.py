@@ -20,17 +20,7 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
-# Test questions with reference (ground-truth) answers, drawn from the
-# actual myRelief policy/SOP documents.
-#
-# "tier" here is ONLY used to pull retrieval context for the RAGAS
-# context metrics (context_precision/recall) -- it does NOT get passed
-# into the agent pipeline. The agent's own classify_query tool is what
-# determines tier from the question's phrasing, exactly as it would
-# for a real user. This is deliberate: it tests classify_query's real
-# extraction ability, not just retrieval-when-told-the-right-filter.
-# Where tier is genuinely ambiguous or absent in the question, it's
-# left as None below.
+
 TEST_SET = [
     {
         "question": "What is the room rent capping under the Basic plan?",

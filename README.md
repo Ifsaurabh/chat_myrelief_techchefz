@@ -47,7 +47,7 @@ Full flow diagram and design reasoning: see `DECISIONS_LOG.md`.
 | Evaluation | RAGAS |
 | Chatbot interface | OpenWebUI (Docker), connected via OpenAI-compatible API |
 
-## Design choices (left open by the assignment)
+## Design choices
 
 - **Chunking:** MarkdownNodeParser, splitting along heading boundaries
   rather than fixed character counts -- Docling's markdown output
@@ -80,26 +80,6 @@ Full flow diagram and design reasoning: see `DECISIONS_LOG.md`.
   same reasoning: prove logic works before adding containerization
   complexity.
 
-## Why this counts as agentic RAG, not RAG with a label
-
-Naive RAG is a fixed pipeline: retrieve once, generate once. Agentic
-RAG turns retrieval into a control loop: retrieve, reason, decide,
-retrieve again or stop.
-
-The Research Agent implements this directly:
-1. Reads the question, reasons about which policy tier and document
-   type it concerns (`classify_query` tool -- genuine LLM
-   interpretation, not keyword matching)
-2. Retrieves using that classification (`retrieve_policy_chunks` tool)
-3. Evaluates whether results are relevant enough (CrossEncoder rerank
-   score against a threshold)
-4. If not, retries with broadened parameters before concluding
-
-Metadata filtering alone (`tier=basic`) is not agentic -- it's a
-static filter. What makes this agentic is the Research Agent deciding
-*which* filter to apply, *whether* to decompose a multi-part question,
-and *whether* to retry, all as runtime LLM reasoning rather than fixed
-code paths.
 
 ## Known limitations (deliberate scope decisions)
 
@@ -137,13 +117,17 @@ code paths.
   command; per community reports this typically succeeds within 2-4
   attempts.
 - **A 500 error was encountered once via OpenWebUI** when querying
-  against an empty (pre-ingestion) Docker database. Root cause is
-  believed to be the Research Agent's retry-on-weak-results loop
-  never satisfying its own stopping condition when literally zero
-  content exists to retrieve (every attempt returns "no relevant
-  content found," which the agent interprets as "try again"). Not
-  reproduced against a populated database -- native testing with real
-  data never triggered this. Not yet root-caused with certainty.
+  against an empty (pre-ingestion) Docker database, after the Research
+  Agent ran for several minutes with no response. Root-caused: none
+  of the three CrewAI agents had explicit `max_iter`/`max_execution_time`
+  bounds set, so a query with nothing retrievable could run for an
+  extended (though not literally infinite) number of tool-calling
+  rounds before returning. **Fixed** -- `research_agent` now has
+  `max_iter=6` and `max_execution_time=300` (5-minute hard ceiling),
+  `synthesis_agent`/`suggestion_agent` each have `max_execution_time=180`,
+  and the Research Agent's backstory now explicitly caps retries per
+  question-part at two attempts before reporting "not found" instead
+  of continuing to retry. See DECISIONS_LOG.md Section 13.
 
 ## Project structure
 

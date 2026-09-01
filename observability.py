@@ -72,9 +72,7 @@ Answer with ONLY the rewritten question, nothing else.""",
 }
 
 
-# Push this project's prompts into Phoenix's prompt registry once.
-# Tolerant of prompts that already exist (this can run from both
-# ingest.py and app.py in the same session).
+# register prompts with Phoenix, if available
 def register_prompts():
     if not _PHOENIX_AVAILABLE:
         print("[Phoenix unavailable, skipping prompt registration - using local PROMPTS dict as fallback]")

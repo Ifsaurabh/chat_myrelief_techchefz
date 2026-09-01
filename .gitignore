@@ -7,3 +7,5 @@ venv/
 .ipynb_checkpoints/
 notes.md
 data/enriched_nodes.pkl
+arize-phoenix/
+groq_test_output.txt

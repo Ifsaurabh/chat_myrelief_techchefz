@@ -17,19 +17,9 @@ from retrieve import load_index, retrieve
 
 load_dotenv()
 
-# For local models via Ollama: leave USE_GROQ unset/false.
-# For this one-time validation test (proving the architecture works
-# with a more capable model, not just the local 3B model): set
-# USE_GROQ=true in .env and provide GROQ_API_KEY. See DECISIONS_LOG.md.
-USE_GROQ = os.getenv("USE_GROQ", "false").lower() == "true"
-
-if USE_GROQ:
-    OLLAMA_MODEL = "groq/llama-3.3-70b-versatile"
-    llm = LLM(model=OLLAMA_MODEL, timeout=500)
-else:
-    OLLAMA_MODEL = f"ollama/{os.getenv('OLLAMA_MODEL', 'qwen2.5:3b')}"
-    OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    llm = LLM(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL, timeout=500)
+OLLAMA_MODEL = f"ollama/{os.getenv('OLLAMA_MODEL', 'qwen2.5:3b')}"
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+llm = LLM(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL, timeout=500)
 
 _index = None
 
@@ -107,17 +97,22 @@ research_agent = Agent(
         "call. "
         "4) After each call, check: did this cover the part it was meant "
         "to answer? If a part is still missing, unrelated, or thin, call "
-        "retrieve_policy_chunks AGAIN for that specific part -- rephrase "
-        "the query with different keywords, or change/drop the tier or "
-        "doc_type filter, and try again. Keep retrieving, part by part, "
-        "until every distinct part of the original question has "
-        "sufficient, relevant chunks. Only then pass everything to the "
-        "next agent for synthesis -- do not write the final answer "
-        "yourself."
+        "retrieve_policy_chunks AGAIN for that specific part ONCE MORE -- "
+        "rephrase the query with different keywords, or change/drop the "
+        "tier or doc_type filter. Do not retry the same part more than "
+        "twice in total. If retrieve_policy_chunks returns 'No relevant "
+        "policy content found' on both attempts for a part, STOP trying "
+        "that part -- report to the next agent that no information was "
+        "found for it, rather than continuing to retry. Once every part "
+        "has either sufficient chunks or a confirmed no-result, pass "
+        "everything to the next agent for synthesis -- do not write the "
+        "final answer yourself."
     ),
     tools=[classify_query, retrieve_policy_chunks],
     llm=llm,
     verbose=True,
+    max_iter=6,
+    max_execution_time=300,
 )
 
 synthesis_agent = Agent(
@@ -133,6 +128,7 @@ synthesis_agent = Agent(
     ),
     llm=llm,
     verbose=True,
+    max_execution_time=180,
 )
 
 suggestion_agent = Agent(
@@ -153,6 +149,7 @@ suggestion_agent = Agent(
     ),
     llm=llm,
     verbose=True,
+    max_execution_time=180,
 )
 
 

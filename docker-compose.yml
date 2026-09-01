@@ -24,13 +24,7 @@ services:
     volumes:
       - ollama_data:/root/.ollama
 
-  app:
-    # build: . rebuilds the image locally from the Dockerfile on every
-    # `docker compose up --build`. A prebuilt version of this same image
-    # is also published at ifsaurabh/myrelief-policy-assistant:latest on
-    # Docker Hub -- swap this line for
-    # `image: ifsaurabh/myrelief-policy-assistant:latest` to pull that
-    # instead of rebuilding from source.
+  app:    
     build: .
     container_name: policy-app
     depends_on:

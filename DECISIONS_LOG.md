@@ -165,48 +165,36 @@ research to be a widely-reported Docker/network reliability issue
 Smaller decisions and dead ends from the same testing session as
 Sections 11-12, kept here for a complete record.
 
-**Groq API validation attempt (inconclusive, reverted).** After
-confirming qwen2.5:3b's multi-part decomposition limitation, attempted
-to validate that the *architecture* (not just this specific model) was
-sound by swapping in Groq's free-tier `llama-3.3-70b-versatile` via a
-toggle (`USE_GROQ` env var in `agent.py`). This hit a genuine CrewAI/
-LiteLLM compatibility bug unrelated to the architecture: CrewAI's
-newer LiteLLM integration sends a `cache_breakpoint` property (an
-Anthropic-specific prompt-caching field) in the system message, which
-Groq's API rejects with a 400 error. Not pursued further given time --
-this is a third-party library incompatibility, not a finding about
-model capability. The `USE_GROQ` toggle is left in `agent.py` (default
-off) in case it's revisited later with a different provider or a
-CrewAI version that doesn't send that field.
+**Prompt reinforcement, tested and kept.** The Research Agent's
+backstory was strengthened with a concrete worked example ("Basic and
+Premium room rent = TWO separate calls") rather than only abstract
+"decompose the question" language. Measured real improvement on the
+same complex test query: 1 of 3 question-parts covered before the
+change, 2 of 3 after. Basic-tier room rent was still missed even with
+the improved prompt -- confirms this is a genuine, partially-prompt-
+fixable but not fully prompt-fixable model limitation, not simply an
+under-specified instruction.
 
-**Prompt reinforcement, tested and kept.** Before the Groq attempt,
-the Research Agent's backstory was strengthened with a concrete worked
-example ("Basic and Premium room rent = TWO separate calls") rather
-than only abstract "decompose the question" language. Measured real
-improvement on the same complex test query: 1 of 3 question-parts
-covered before the change, 2 of 3 after. Basic-tier room rent was
-still missed even with the improved prompt -- confirms this is a
-genuine, partially-prompt-fixable but not fully prompt-fixable model
-limitation, not simply an under-specified instruction.
+**answer_policy_question() empty-database behavior -- root-caused and
+fixed.** When tested against the empty Docker database via OpenWebUI,
+a request returned HTTP 500 after several minutes with no response.
+Auditing `agent.py` found the actual cause: none of the three agents
+had `max_iter` or `max_execution_time` set. CrewAI's Agent class has
+an internal default iteration cap (not explicit in our code), but at
+this project's observed CPU-only inference latency, even a bounded
+number of iterations (framework default) could run long enough to
+feel indefinite -- this, combined with the Research Agent's retry
+instruction having no explicit stop condition for "genuinely zero
+results exist," produced the stall.
 
-**answer_policy_question() empty-database behavior (suspected, not
-confirmed root cause).** When tested against the empty Docker
-database via OpenWebUI, a request returned HTTP 500 after several
-minutes with no response. Working theory: the Research Agent's own
-backstory instruction ("keep retrieving, part by part, until every
-distinct part has sufficient, relevant chunks") has no defined exit
-condition when the database is genuinely empty -- every
-retrieve_policy_chunks call returns "No relevant policy content
-found," which the agent may interpret as "insufficient, retry" rather
-than "nothing exists, stop." This was never observed during any
-native test, all of which ran against the populated database. Not
-root-caused with certainty before time ran out; flagged honestly in
-README.md rather than silently left undocumented. If revisited: the
-fix would likely be an explicit stopping instruction in the backstory
-("if retrieve_policy_chunks returns 'No relevant policy content
-found' after 2 attempts, stop and report no information was found"
-rather than continuing to retry indefinitely), or a hard retry-count
-ceiling enforced in code rather than left to the agent's judgment.
+**Fix applied:** `research_agent` now has `max_iter=6` and
+`max_execution_time=300` (5-minute hard ceiling); `synthesis_agent`
+and `suggestion_agent` each have `max_execution_time=180`. The
+Research Agent's backstory was also updated with an explicit stop
+condition: retry a given part at most twice, and if
+`retrieve_policy_chunks` returns "No relevant policy content found"
+on both attempts, stop retrying that part and report it as
+unavailable rather than continuing to retry indefinitely.
 
 **Model reversion sequence (chronological summary of Section 11's
 testing, for quick reference):** qwen2.5:3b (baseline, working) ->
