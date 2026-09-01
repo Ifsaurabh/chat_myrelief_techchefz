@@ -1,0 +1,71 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: policy-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: policy-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  app:
+    # build: . rebuilds the image locally from the Dockerfile on every
+    # `docker compose up --build`. A prebuilt version of this same image
+    # is also published at ifsaurabh/myrelief-policy-assistant:latest on
+    # Docker Hub -- swap this line for
+    # `image: ifsaurabh/myrelief-policy-assistant:latest` to pull that
+    # instead of rebuilding from source.
+    build: .
+    container_name: policy-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL}
+    volumes:
+      - ./data:/app/data
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: policy-openwebui
+    depends_on:
+      - app
+    ports:
+      - "3000:8080"
+    environment:
+      OPENAI_API_BASE_URL: http://app:8000/v1
+      OPENAI_API_KEY: not-needed-local
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:-myrelief-dev-secret-change-in-prod}
+    volumes:
+      - openwebui_data:/app/backend/data
+
+volumes:
+  postgres_data:
+  ollama_data:
+  openwebui_data:
