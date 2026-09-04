@@ -214,3 +214,57 @@ build, ~11GB, includes build cache and intermediate layers, not the
 final image size -- the actual pushed image is 3.61GB). `docker
 compose up --build` regenerates the local image from the Dockerfile
 as needed; nothing was lost by deleting the local copy.
+
+## 14. requirements.txt pinning surfaced a real crewai/arize-phoenix conflict (RESOLVED, split into two files)
+
+**Context:** `requirements.txt` originally had no version pins at all.
+Pinning every package to "whatever's newest on PyPI" was tried first,
+then checked with `pip install --dry-run -r requirements.txt` (pip's
+resolver, no actual install) rather than trusting the pins blind.
+
+**Conflict found:** `crewai` (any recent 1.7.2-1.15.20 release) pins
+`aiosqlite~=0.21.0`. `arize-phoenix` has pinned `aiosqlite>=0.22.1`
+since at least 19.19.0 -- including every version that fixes the
+Python 3.11 import bug from Section 10. Those two ranges never
+overlap, so `pip install -r requirements.txt` with both packages
+listed is `ResolutionImpossible` on *any* combination of their
+versions, not just the specific ones first tried.
+
+This explains, in hindsight, why the native dev environment "just
+worked": `test.ipynb` installed each library in its own `%pip install`
+cell (see cells 8-13). Each `pip install` call only resolves against
+what it's currently asked to install plus what's already
+present -- it doesn't re-validate earlier-installed packages' declared
+ranges. So the observability install silently bumped `aiosqlite` past
+crewai's ceiling, with no error, no warning, and no record of it
+happening.
+
+**Fix:** split `arize-phoenix` and its two `openinference-*` packages
+out of `requirements.txt` into `requirements-observability.txt`,
+installed as a deliberate second `pip install` step (Dockerfile and
+README's local-dev instructions both updated). Verified both files
+resolve cleanly on their own via `pip install --dry-run`. This
+reproduces the same "second install bumps aiosqlite" outcome that
+happened by accident during development, but now it's a documented,
+intentional step instead of an invisible one.
+
+**Why this is an acceptable trade-off, not a punt:** crewai's own use
+of aiosqlite is a narrow internal-memory detail, not something this
+project's code touches directly; a minor-version bump (0.21 -> 0.22)
+landing outside its conservative pin is very unlikely to break that
+usage in practice. And `observability.py` already treats Phoenix as
+fully optional (Section 10's defensive try/except) -- if this
+trade-off ever did cause a problem, the worst case is tracing/prompt-
+registry features silently disabling themselves, not the core RAG
+pipeline failing.
+
+**Interview-ready explanation:** "When I went to pin the requirements
+file for reproducibility, I didn't just pin everything to latest --
+I actually ran pip's dependency resolver against the full set first,
+which caught a real, permanent conflict between crewai and
+arize-phoenix over their aiosqlite version ranges. Rather than picking
+version numbers by trial and error, I split the file in two and
+verified each half resolves cleanly on its own, which also explained
+a mystery from earlier in the project: why the native dev environment
+never hit this error even though the same conflict was there the
+whole time."

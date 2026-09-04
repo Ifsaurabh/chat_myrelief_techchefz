@@ -1,0 +1,18 @@
+# Install AFTER requirements.txt: `pip install -r requirements-observability.txt`.
+#
+# Kept separate because arize-phoenix requires aiosqlite>=0.22.1, which
+# is outside the aiosqlite~=0.21.0 that crewai (in requirements.txt)
+# pins - the two can't be resolved in one `pip install` command. This
+# second install intentionally bumps the already-installed aiosqlite
+# past crewai's declared ceiling. That's a documented, verified
+# trade-off, not an oversight: crewai's own aiosqlite usage is a narrow
+# internal-memory detail unaffected by the 0.21 -> 0.22 bump, and
+# observability.py already treats Phoenix as fully optional/best-effort
+# (see DECISIONS_LOG.md #10 and #14) - a problem here disables tracing
+# only, never the core RAG pipeline.
+#
+# Verified with `pip install --dry-run -r requirements-observability.txt`
+# as of this audit (2026-09).
+arize-phoenix>=20.5.0,<21
+openinference-instrumentation-crewai==1.1.16
+openinference-instrumentation-llama-index==4.5.0
