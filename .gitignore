@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+*.ipynb
 .ipynb_checkpoints/
 notes.md
 data/enriched_nodes.json
