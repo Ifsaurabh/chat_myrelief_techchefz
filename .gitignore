@@ -6,6 +6,6 @@ venv/
 *.egg-info/
 .ipynb_checkpoints/
 notes.md
-data/enriched_nodes.pkl
+data/enriched_nodes.json
 arize-phoenix/
 groq_test_output.txt

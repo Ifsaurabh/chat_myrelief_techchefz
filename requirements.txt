@@ -1,24 +1,28 @@
-fastapi
-uvicorn
-pydantic
-python-dotenv
-psycopg2-binary
+# Pinned to the latest versions available on PyPI as of this audit
+# (2026-09). arize-phoenix is pinned >=20.5.0 specifically because
+# 20.4.0 fails to import on Python 3.11 (see DECISIONS_LOG.md #10) --
+# bump these together and re-test rather than dropping the pins.
+fastapi==0.141.1
+uvicorn==0.52.4
+pydantic==2.13.5
+python-dotenv==1.2.3
+psycopg2-binary==2.9.12
 
-docling
-llama-index-core
-llama-index-vector-stores-postgres
-llama-index-embeddings-huggingface
-llama-index-llms-ollama
+docling==2.126.0
+llama-index-core==0.14.24
+llama-index-vector-stores-postgres==0.9.0
+llama-index-embeddings-huggingface==0.8.0
+llama-index-llms-ollama==0.11.0
 
-crewai
-crewai-tools
+crewai==1.15.20
+crewai-tools==1.15.20
 
-arize-phoenix
-openinference-instrumentation-crewai
-openinference-instrumentation-llama-index
+arize-phoenix>=20.5.0,<21
+openinference-instrumentation-crewai==1.1.16
+openinference-instrumentation-llama-index==4.5.0
 
-ragas
-datasets
+ragas==0.4.3
+datasets==5.0.1
 
-torch
-sentence-transformers
+torch==2.14.0
+sentence-transformers==6.0.1

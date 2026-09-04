@@ -17,11 +17,12 @@ if platform.system() == "Windows":
 # ---------------------------------------------------------------------
 
 # imports
-import pickle
+import json
 from dotenv import load_dotenv
 from pathlib import Path
 from docling.document_converter import DocumentConverter
 from llama_index.core import Document, VectorStoreIndex, StorageContext
+from llama_index.core.schema import TextNode
 from llama_index.core.node_parser import MarkdownNodeParser
 from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -45,7 +46,24 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 # Checkpoint file - saves contextually-enriched nodes to disk so a
 # failure downstream (e.g. DB schema issue during storage) doesn't
 # require redoing the slow, 89-call contextual enrichment step.
-CHECKPOINT_FILE = Path("data/enriched_nodes.pkl")
+# Plain JSON (not pickle) - avoids deserializing arbitrary objects,
+# and this checkpoint only ever needs each node's id, text, and metadata.
+CHECKPOINT_FILE = Path("data/enriched_nodes.json")
+
+
+def save_checkpoint(nodes: list, path: Path):
+    serializable = [
+        {"id_": node.id_, "text": node.text, "metadata": node.metadata}
+        for node in nodes
+    ]
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(serializable, f)
+
+
+def load_checkpoint(path: Path) -> list:
+    with open(path, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+    return [TextNode(id_=item["id_"], text=item["text"], metadata=item["metadata"]) for item in raw]
 
 
 # Docling PDF to markdown
@@ -134,8 +152,7 @@ if __name__ == "__main__":
 
     if CHECKPOINT_FILE.exists():
         print(f"Found checkpoint at {CHECKPOINT_FILE} - skipping conversion, chunking, and contextual enrichment.")
-        with open(CHECKPOINT_FILE, "rb") as f:
-            nodes = pickle.load(f)
+        nodes = load_checkpoint(CHECKPOINT_FILE)
         print(f"Loaded {len(nodes)} already-enriched chunks from checkpoint.")
     else:
         all_markdown = convert_all_pdfs()
@@ -150,8 +167,7 @@ if __name__ == "__main__":
         print("\nGenerating contextual blurbs for each chunk (this may take a while)...")
         nodes = add_context_to_chunks(nodes, documents)
 
-        with open(CHECKPOINT_FILE, "wb") as f:
-            pickle.dump(nodes, f)
+        save_checkpoint(nodes, CHECKPOINT_FILE)
         print(f"Checkpoint saved to {CHECKPOINT_FILE} ({len(nodes)} enriched chunks).")
 
     print("\nEmbedding and storing chunks in PGVector...")

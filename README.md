@@ -166,9 +166,12 @@ cd chat_myrelief_techchefz
 ```bash
 cp .env.example .env
 ```
-Open `.env` and set `DB_PASSWORD` to any value of your choice (used
-only for the local Postgres container). Leave the other values as-is
-unless you want a different model or port.
+Open `.env` and set `DB_PASSWORD` and `WEBUI_SECRET_KEY` to values of
+your choice (`DB_PASSWORD` is used only for the local Postgres
+container; `WEBUI_SECRET_KEY` signs OpenWebUI's session cookies and is
+required -- `docker compose up` will refuse to start without it).
+Leave the other values as-is unless you want a different model or
+port, or want to require an API key on the chat endpoint (`API_KEY`).
 
 **Step 3 -- build and start all four containers:**
 ```bash
