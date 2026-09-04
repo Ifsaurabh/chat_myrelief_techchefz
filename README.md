@@ -182,6 +182,17 @@ This pulls `pgvector/pgvector:pg16`, `ollama/ollama:latest`, and
 `ghcr.io/open-webui/open-webui:main`, and builds the `app` image from
 the included `Dockerfile`. First run takes several minutes.
 
+*Note on the prebuilt image:* an earlier build of the `app` image was
+pushed to Docker Hub at
+[`ifsaurabh/myrelief-policy-assistant`](https://hub.docker.com/r/ifsaurabh/myrelief-policy-assistant)
+(see DECISIONS_LOG.md Section 12). It predates the fixes in this
+audit (connection handling, auth, pinned dependencies, the pickle ->
+JSON checkpoint change) and has not been rebuilt/re-pushed since, so
+`docker-compose.yml` intentionally always builds `app` from the local
+`Dockerfile` (`build: .`) rather than pulling that tag -- use
+`docker compose up --build` as shown above, not `docker pull
+ifsaurabh/myrelief-policy-assistant`.
+
 *If the OpenWebUI image pull fails with "unexpected EOF":* this is a
 known, widely-reported Docker/network issue (see DECISIONS_LOG.md
 Section 12), not a problem with this project. Simply re-run the same
