@@ -144,6 +144,7 @@ chat_myrelief_techchefz/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
+├── requirements-observability.txt  # arize-phoenix + openinference, installed separately (see comment inside)
 ├── data/raw_pdfs/               # source policy/SOP PDFs
 └── DECISIONS_LOG.md              # full running log of design decisions and debugging history
 ```
@@ -265,6 +266,8 @@ avoided needing a C++ toolchain).
 
 ```bash
 cp .env.example .env   # fill in your local Postgres password
+pip install -r requirements.txt
+pip install -r requirements-observability.txt   # separate step, see comment in requirements.txt
 psql -U postgres -f setup.sql
 ollama pull qwen2.5:3b
 python ingest.py

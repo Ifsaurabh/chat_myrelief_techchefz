@@ -1,10 +1,18 @@
-# Pinned to the latest versions available on PyPI as of this audit
-# (2026-09). arize-phoenix is pinned >=20.5.0 specifically because
-# 20.4.0 fails to import on Python 3.11 (see DECISIONS_LOG.md #10) --
-# bump these together and re-test rather than dropping the pins.
+# Pinned to mutually-compatible versions, verified with
+# `pip install --dry-run -r requirements.txt` (no ResolutionImpossible)
+# as of this audit (2026-09). Bump together and re-run that check
+# rather than editing pins individually.
+#
+# arize-phoenix and its two openinference packages are NOT in this
+# file - they live in requirements-observability.txt and are installed
+# in a second step. Reason: crewai pins aiosqlite~=0.21.0, but
+# arize-phoenix has required aiosqlite>=0.22.1 since well before the
+# Python 3.11 import bug fix (DECISIONS_LOG.md #10) - those ranges
+# never overlap, so no single `pip install` can satisfy both. See
+# requirements-observability.txt and DECISIONS_LOG.md #14 for details.
 fastapi==0.141.1
 uvicorn==0.52.4
-pydantic==2.13.5
+pydantic==2.12.4
 python-dotenv==1.2.3
 psycopg2-binary==2.9.12
 
@@ -16,10 +24,6 @@ llama-index-llms-ollama==0.11.0
 
 crewai==1.15.20
 crewai-tools==1.15.20
-
-arize-phoenix>=20.5.0,<21
-openinference-instrumentation-crewai==1.1.16
-openinference-instrumentation-llama-index==4.5.0
 
 ragas==0.4.3
 datasets==5.0.1
