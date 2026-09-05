@@ -195,16 +195,17 @@ ifsaurabh/myrelief-policy-assistant`.
 
 A GitHub Actions workflow (`.github/workflows/docker-publish.yml`)
 now rebuilds and pushes that tag automatically on every push to
-`main`, so it stays current going forward. It reads Docker Hub
-credentials from two repo secrets (Settings -> Secrets and variables
--> Actions -> New repository secret):
+`main`, so it stays current going forward. The Docker Hub username
+(`ifsaurabh`) is hardcoded directly in the workflow -- it isn't
+sensitive. The only credential that needs to be a repo secret
+(Settings -> Secrets and variables -> Actions -> New repository
+secret) is:
 
 | Secret | Value |
 |---|---|
-| `DOCKERHUB_USERNAME` | `ifsaurabh` |
-| `DOCKERHUB_TOKEN` | A Docker Hub access token (Account Settings -> Security -> New Access Token, Read & Write scope) -- not your account password |
+| `MYDOCKERKEY` | A Docker Hub access token (Account Settings -> Security -> New Access Token, Read & Write scope) -- not your account password |
 
-Once those two secrets are set, you can also trigger a rebuild on
+Once that secret is set, you can also trigger a rebuild on
 demand from the repo's Actions tab -> "Build and push Docker image" ->
 Run workflow, without waiting for a push to `main`.
 
