@@ -144,6 +144,7 @@ chat_myrelief_techchefz/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
+├── requirements-observability.txt  # arize-phoenix + openinference, installed separately (see comment inside)
 ├── data/raw_pdfs/               # source policy/SOP PDFs
 └── DECISIONS_LOG.md              # full running log of design decisions and debugging history
 ```
@@ -166,9 +167,12 @@ cd chat_myrelief_techchefz
 ```bash
 cp .env.example .env
 ```
-Open `.env` and set `DB_PASSWORD` to any value of your choice (used
-only for the local Postgres container). Leave the other values as-is
-unless you want a different model or port.
+Open `.env` and set `DB_PASSWORD` and `WEBUI_SECRET_KEY` to values of
+your choice (`DB_PASSWORD` is used only for the local Postgres
+container; `WEBUI_SECRET_KEY` signs OpenWebUI's session cookies and is
+required -- `docker compose up` will refuse to start without it).
+Leave the other values as-is unless you want a different model or
+port, or want to require an API key on the chat endpoint (`API_KEY`).
 
 **Step 3 -- build and start all four containers:**
 ```bash
@@ -177,6 +181,32 @@ docker compose up --build -d
 This pulls `pgvector/pgvector:pg16`, `ollama/ollama:latest`, and
 `ghcr.io/open-webui/open-webui:main`, and builds the `app` image from
 the included `Dockerfile`. First run takes several minutes.
+
+*Note on the prebuilt image:* an earlier build of the `app` image was
+pushed to Docker Hub at
+[`ifsaurabh/myrelief-policy-assistant`](https://hub.docker.com/r/ifsaurabh/myrelief-policy-assistant)
+(see DECISIONS_LOG.md Section 12). It predates the fixes in this
+audit (connection handling, auth, pinned dependencies, the pickle ->
+JSON checkpoint change) and has not been rebuilt/re-pushed since, so
+`docker-compose.yml` intentionally always builds `app` from the local
+`Dockerfile` (`build: .`) rather than pulling that tag -- use
+`docker compose up --build` as shown above, not `docker pull
+ifsaurabh/myrelief-policy-assistant`.
+
+A GitHub Actions workflow (`.github/workflows/docker-publish.yml`)
+now rebuilds and pushes that tag automatically on every push to
+`main`, so it stays current going forward. It reads Docker Hub
+credentials from two repo secrets (Settings -> Secrets and variables
+-> Actions -> New repository secret):
+
+| Secret | Value |
+|---|---|
+| `DOCKERHUB_USERNAME` | `ifsaurabh` |
+| `DOCKERHUB_TOKEN` | A Docker Hub access token (Account Settings -> Security -> New Access Token, Read & Write scope) -- not your account password |
+
+Once those two secrets are set, you can also trigger a rebuild on
+demand from the repo's Actions tab -> "Build and push Docker image" ->
+Run workflow, without waiting for a push to `main`.
 
 *If the OpenWebUI image pull fails with "unexpected EOF":* this is a
 known, widely-reported Docker/network issue (see DECISIONS_LOG.md
@@ -262,6 +292,8 @@ avoided needing a C++ toolchain).
 
 ```bash
 cp .env.example .env   # fill in your local Postgres password
+pip install -r requirements.txt
+pip install -r requirements-observability.txt   # separate step, see comment in requirements.txt
 psql -U postgres -f setup.sql
 ollama pull qwen2.5:3b
 python ingest.py

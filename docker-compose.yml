@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
     image: ollama/ollama:latest
     container_name: policy-ollama
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
     volumes:
       - ollama_data:/root/.ollama
 
@@ -55,7 +55,7 @@ services:
     environment:
       OPENAI_API_BASE_URL: http://app:8000/v1
       OPENAI_API_KEY: not-needed-local
-      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:-myrelief-dev-secret-change-in-prod}
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?Set WEBUI_SECRET_KEY in .env (see .env.example)}
     volumes:
       - openwebui_data:/app/backend/data
 
