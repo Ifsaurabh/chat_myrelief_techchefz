@@ -4,9 +4,8 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
-*.ipynb
 .ipynb_checkpoints/
 notes.md
-data/enriched_nodes.json
+data/enriched_nodes.pkl
 arize-phoenix/
 groq_test_output.txt
